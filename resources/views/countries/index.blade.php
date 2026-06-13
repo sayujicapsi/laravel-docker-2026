@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="page-head">
-        <h1>Countries</h1>
+        <h1> Available  Countries</h1>
         <a href="{{ route('countries.create') }}" class="btn btn-primary">+ Create Country</a>
     </div>
 
