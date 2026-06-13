@@ -12,6 +12,7 @@
 /.vscode
 /.zed
 /auth.json
+/docker-compose.dev.yml
 /node_modules
 /public/build
 /public/hot
