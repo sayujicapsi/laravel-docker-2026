@@ -14,4 +14,7 @@ class UserSeeder extends Seeder
     {
         \App\Models\User::factory(1000)->create();
     }
+
+
+    
 }
