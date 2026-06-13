@@ -21,9 +21,28 @@ services:
       SESSION_DRIVER: database
       CACHE_STORE: database
       QUEUE_CONNECTION: database
+      # Pull-at-startup: the entrypoint syncs the served code to this branch on
+      # every boot (no image rebuild needed to deploy a new commit).
+      GIT_REPO_URL: ${GIT_REPO_URL:-https://github.com/sayujicapsi/laravel-docker-2026.git}
+      GIT_BRANCH: ${GIT_BRANCH:-main}
+      # Set GIT_TOKEN (e.g. a GitHub PAT / fine-grained token) only if the repo
+      # is private. Leave empty for a public repo.
+      GIT_TOKEN: ${GIT_TOKEN:-}
+      # Rebuild front-end assets at startup (set false to use the baked assets).
+      BUILD_ASSETS: ${BUILD_ASSETS:-true}
+      # Run `php artisan migrate --force` at startup.
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
     extra_hosts:
       # Required on Linux so host.docker.internal resolves to the host.
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      # php-fpm only starts once the entrypoint has finished syncing + building,
+      # so this doubles as a "startup complete" signal for nginx to wait on.
+      test: ["CMD-SHELL", "pgrep php-fpm >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
 
   nginx:
     build:
@@ -36,7 +55,8 @@ services:
       - app_data:/var/www/html:ro
       - storage:/var/www/html/storage:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
 
   phpmyadmin:
     image: phpmyadmin:latest

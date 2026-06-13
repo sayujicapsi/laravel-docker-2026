@@ -20,7 +20,9 @@ RUN npm run build
 # --- Stage 3: Final image ---
 FROM php:8.2-fpm-alpine
 
-# Install system dependencies + PHP extensions
+# Install system dependencies + PHP extensions.
+# git/nodejs/npm are runtime tools: the entrypoint pulls the branch and
+# rebuilds composer deps + front-end assets on every container start.
 RUN apk add --no-cache \
         libpng-dev \
         libjpeg-turbo-dev \
@@ -29,12 +31,18 @@ RUN apk add --no-cache \
         zip \
         unzip \
         oniguruma-dev \
+        git \
+        nodejs \
+        npm \
     && docker-php-ext-install \
         pdo_mysql \
         mbstring \
         zip \
         bcmath \
         opcache
+
+# Composer binary for runtime dependency installs
+COPY --from=vendor /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
@@ -53,5 +61,10 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 
 RUN rm -f bootstrap/cache/packages.php && php artisan package:discover --ansi
 
+# Entrypoint syncs the code to origin/<branch> at startup, then runs php-fpm
+COPY docker/app/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 9000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
